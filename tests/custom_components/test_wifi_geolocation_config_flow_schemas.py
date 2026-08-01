@@ -135,6 +135,38 @@ def test_wifidb_has_no_credential_schema(schemas, const):
     assert const.BACKEND_WIFIDB not in schemas["_CREDENTIAL_SCHEMAS"]
 
 
+def test_reenter_credentials_field_absent_when_nothing_to_offer(schemas):
+    # Must be entirely absent (not an empty-but-present field) so initial
+    # setup -- which has nothing configured yet -- never shows it.
+    assert schemas["_reenter_credentials_field"](credentialed_backends=[]) == {}
+
+
+def test_reenter_credentials_field_offers_given_backends(schemas, const):
+    field = schemas["_reenter_credentials_field"](credentialed_backends=[const.BACKEND_WIGLE])
+    ((marker, selector_instance),) = field.items()
+
+    assert marker.schema == schemas["CONF_REENTER_CREDENTIALS"]
+    assert selector_instance.config["multiple"] is True
+    assert selector_instance.config["options"] == [{"value": "wigle", "label": "WiGLE"}]
+
+
+def test_backend_field_schema_includes_reenter_field_when_offered(schemas, const):
+    schema = schemas["_backend_field_schema"](
+        current=[const.BACKEND_WIGLE], credentialed_backends=[const.BACKEND_WIGLE]
+    )
+    field_names = {marker.schema for marker in schema.schema}
+
+    assert schemas["CONF_REENTER_CREDENTIALS"] in field_names
+    _serialize(schema)
+
+
+def test_backend_field_schema_omits_reenter_field_by_default(schemas, const):
+    schema = schemas["_backend_field_schema"](current=[const.BACKEND_WIGLE])
+    field_names = {marker.schema for marker in schema.schema}
+
+    assert schemas["CONF_REENTER_CREDENTIALS"] not in field_names
+
+
 def _serialize(schema):
     from homeassistant.helpers import selector
 

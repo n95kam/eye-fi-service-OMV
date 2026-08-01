@@ -99,6 +99,8 @@ _CREDENTIAL_SCHEMAS: dict[str, vol.Schema] = {
 
 _MAX_PRIORITY = len(BACKEND_PRIORITY_ORDER)
 
+CONF_REENTER_CREDENTIALS = "reenter_credentials"
+
 
 def _priority_field(backend: str) -> str:
     return f"{CONF_PRIORITY_PREFIX}{backend}"
@@ -140,12 +142,39 @@ def _reorder_schema(*, current: list[str]) -> vol.Schema:
     )
 
 
-def _backend_field_schema(*, current: list[str]) -> vol.Schema:
+def _reenter_credentials_field(*, credentialed_backends: list[str]) -> dict[Any, Any]:
+    """Extra field letting an already-configured backend's credentials be
+    forced back into the queue for re-entry (e.g. a rotated/revoked API
+    key) -- without it, a backend that stays enabled is assumed to still
+    have working credentials and is never re-prompted. Only offered for
+    backends that actually take credentials and already have them stored;
+    absent entirely (not just empty) when there's nothing to offer, so it
+    doesn't show up as an empty field on first-time setup."""
+    if not credentialed_backends:
+        return {}
+    options = [
+        selector.SelectOptionDict(value=backend, label=BACKEND_LABELS[backend])
+        for backend in credentialed_backends
+    ]
+    return {
+        vol.Optional(CONF_REENTER_CREDENTIALS, default=[]): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=options, multiple=True)
+        )
+    }
+
+
+def _backend_field_schema(
+    *, current: list[str], credentialed_backends: list[str] | None = None
+) -> vol.Schema:
     """Reorderable SelectSelector if the local reorder patch applies
-    cleanly, else the numeric-priority-field fallback."""
+    cleanly, else the numeric-priority-field fallback -- plus, if any
+    already-configured backend needs one, a re-enter-credentials field."""
     if patch_select_selector_reorder():
-        return _reorder_schema(current=current)
-    return _priority_schema(defaults=_priorities_from_backend_list(current))
+        base = _reorder_schema(current=current)
+    else:
+        base = _priority_schema(defaults=_priorities_from_backend_list(current))
+    extra = _reenter_credentials_field(credentialed_backends=credentialed_backends or [])
+    return vol.Schema({**base.schema, **extra})
 
 
 def _parse_selected_backends(user_input: dict[str, Any]) -> list[str]:
@@ -219,7 +248,12 @@ class WifiGeolocationOptionsFlow(config_entries.OptionsFlow):
     Reruns the same priority-field + per-backend credential steps as
     initial setup, but carries over credentials for any backend that's
     still enabled and already configured -- only newly-added backends (or
-    ones with no credentials to begin with) get prompted again.
+    ones with no credentials to begin with) get prompted again. A
+    "re-enter credentials" multi-select (only shown when at least one
+    already-configured backend has credentials to offer) lets a still-
+    enabled backend's credentials be forced back into that same prompt
+    queue -- e.g. after rotating or fixing a revoked API key -- without
+    the disable/re-enable round-trip that'd otherwise be needed.
     """
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -238,15 +272,26 @@ class WifiGeolocationOptionsFlow(config_entries.OptionsFlow):
                 for backend in list(_CREDENTIAL_SCHEMAS):
                     if backend not in selected:
                         self._data.pop(backend, None)
+                # Popping a still-selected backend's stored credentials
+                # here makes it indistinguishable from a newly-added one
+                # below, so it re-enters the same credential-prompt queue
+                # instead of needing a disable/re-enable round-trip.
+                for backend in user_input.get(CONF_REENTER_CREDENTIALS, []):
+                    self._data.pop(backend, None)
                 self._pending = [
                     b for b in selected if b in _CREDENTIAL_SCHEMAS and b not in self._data
                 ]
                 return await self._async_step_next_backend()
 
         current = self._config_entry.data.get(CONF_BACKENDS, [BACKEND_GOOGLE])
+        credentialed_backends = [
+            backend for backend in current if backend in _CREDENTIAL_SCHEMAS and backend in self._data
+        ]
         return self.async_show_form(
             step_id="init",
-            data_schema=_backend_field_schema(current=current),
+            data_schema=_backend_field_schema(
+                current=current, credentialed_backends=credentialed_backends
+            ),
             errors=errors,
         )
 

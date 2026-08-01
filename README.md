@@ -169,7 +169,12 @@ that patch can't apply for any reason. Either way, they're tried in that
 order at runtime, stopping at the first one that resolves a location.
 Change it any time via the integration's **Configure** button —
 reordering or adding/removing backends there doesn't require removing
-and re-adding the integration.
+and re-adding the integration. A backend that stays enabled keeps its
+stored credentials by default (it's not re-prompted just for staying
+enabled); to force one back into the credential-entry queue instead —
+e.g. after rotating or fixing a revoked API key — select it under
+**Configure**'s "Re-enter credentials for" field, which only appears
+when at least one already-configured backend has credentials to offer.
 
 | Backend | Notes |
 |---|---|

@@ -42,7 +42,7 @@
     "step": {
       "init": {
         "title": "WiFi Geolocation backends",
-        "description": "Change which backend(s) are enabled and/or their order -- drag to reorder if your HA version supports it, otherwise set a priority number per backend (1 = tried first, 0 = disabled). Backends that stay enabled keep their existing credentials; newly-enabled ones will prompt for credentials next.",
+        "description": "Change which backend(s) are enabled and/or their order -- drag to reorder if your HA version supports it, otherwise set a priority number per backend (1 = tried first, 0 = disabled). Backends that stay enabled keep their existing credentials; newly-enabled ones will prompt for credentials next. To replace an already-configured backend's credentials (e.g. a rotated or revoked API key) without disabling and re-enabling it, select it under \"Re-enter credentials for\" below.",
         "data": {
           "backends": "Backends, in priority order",
           "priority_google": "Google Geolocation API",
@@ -52,7 +52,8 @@
           "priority_here": "HERE Technologies Positioning API",
           "priority_unwired_labs": "Unwired Labs LocationAPI",
           "priority_wigle": "WiGLE",
-          "priority_wifidb": "WifiDB (free, no account needed -- beta community project)"
+          "priority_wifidb": "WifiDB (free, no account needed -- beta community project)",
+          "reenter_credentials": "Re-enter credentials for"
         }
       },
       "backend_config": {
