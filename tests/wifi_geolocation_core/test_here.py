@@ -33,3 +33,18 @@ async def test_here_returns_none_on_non_200():
     session = fake_session(500, {})
     backend = HereGeolocationBackend(api_key="k", session=session)
     assert await backend.resolve(AP) is None
+
+
+@pytest.mark.asyncio
+async def test_here_verify_credentials_false_on_401_or_403():
+    for status in (401, 403):
+        session = fake_session(status, {})
+        backend = HereGeolocationBackend(api_key="k", session=session)
+        assert await backend.verify_credentials() is False
+
+
+@pytest.mark.asyncio
+async def test_here_verify_credentials_true_on_200():
+    session = fake_session(200, {"location": {"lat": 1.0, "lng": 2.0}})
+    backend = HereGeolocationBackend(api_key="k", session=session)
+    assert await backend.verify_credentials() is True

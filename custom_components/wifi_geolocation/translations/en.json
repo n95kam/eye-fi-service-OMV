@@ -32,7 +32,8 @@
       }
     },
     "error": {
-      "no_backend_selected": "Enable at least one backend."
+      "no_backend_selected": "Enable at least one backend.",
+      "invalid_auth": "Could not verify these credentials -- {backend} rejected them. Double-check and try again."
     },
     "abort": {
       "single_instance_allowed": "Only one WiFi Geolocation configuration is allowed."
@@ -72,7 +73,8 @@
       }
     },
     "error": {
-      "no_backend_selected": "Enable at least one backend."
+      "no_backend_selected": "Enable at least one backend.",
+      "invalid_auth": "Could not verify these credentials -- {backend} rejected them. Double-check and try again."
     }
   }
 }

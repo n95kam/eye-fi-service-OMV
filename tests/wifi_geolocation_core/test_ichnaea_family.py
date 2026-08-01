@@ -75,6 +75,30 @@ async def test_ichnaea_family_returns_none_on_404_not_found(caplog):
 
 
 @pytest.mark.asyncio
+async def test_ichnaea_family_verify_credentials_false_on_401_or_403():
+    session_401 = fake_session(401, {})
+    session_403 = fake_session(403, {})
+
+    assert await CombainGeolocationBackend(api_key="k", session=session_401).verify_credentials() is False
+    assert await CombainGeolocationBackend(api_key="k", session=session_403).verify_credentials() is False
+
+
+@pytest.mark.asyncio
+async def test_ichnaea_family_verify_credentials_true_on_200_or_404():
+    session_200 = fake_session(200, {"location": {"lat": 1.0, "lng": 2.0}})
+    session_404 = fake_session(404, {"error": {"code": 404}})
+
+    assert await CombainGeolocationBackend(api_key="k", session=session_200).verify_credentials() is True
+    assert await CombainGeolocationBackend(api_key="k", session=session_404).verify_credentials() is True
+
+
+@pytest.mark.asyncio
+async def test_ichnaea_family_verify_credentials_true_and_does_not_raise_on_timeout():
+    session = RaisingSession(TimeoutError())
+    assert await CombainGeolocationBackend(api_key="k", session=session).verify_credentials() is True
+
+
+@pytest.mark.asyncio
 async def test_ichnaea_family_timeout_does_not_crash_resolve():
     # aiohttp.ClientTimeout(total=...) raises a bare TimeoutError, not an
     # aiohttp.ClientError subclass -- same fix/rationale as WiGLE/WifiDB.

@@ -49,6 +49,32 @@ async def test_wigle_skips_lookup_entirely_while_in_cooldown():
 
 
 @pytest.mark.asyncio
+async def test_wigle_verify_credentials_false_on_401():
+    session = fake_session(401, {"success": False, "message": "not authorized"})
+    backend = WigleGeolocationBackend(api_name="n", api_token="t", session=session)
+
+    assert await backend.verify_credentials() is False
+
+
+@pytest.mark.asyncio
+async def test_wigle_verify_credentials_true_on_200():
+    session = fake_session(200, {"results": []})
+    backend = WigleGeolocationBackend(api_name="n", api_token="t", session=session)
+
+    assert await backend.verify_credentials() is True
+
+
+@pytest.mark.asyncio
+async def test_wigle_verify_credentials_true_and_does_not_raise_on_timeout():
+    # Inconclusive (e.g. a network hiccup during the check itself) must
+    # not block saving a credential that might be perfectly valid.
+    session = RaisingSession(TimeoutError())
+    backend = WigleGeolocationBackend(api_name="n", api_token="t", session=session)
+
+    assert await backend.verify_credentials() is True
+
+
+@pytest.mark.asyncio
 async def test_wigle_timeout_on_one_ap_does_not_crash_resolve():
     # aiohttp.ClientTimeout(total=...) raises a bare TimeoutError, not an
     # aiohttp.ClientError subclass -- same fix/rationale as WifiDB's.

@@ -41,3 +41,18 @@ async def test_unwired_labs_returns_none_on_non_ok_status():
     session = fake_session(200, {"status": "error", "message": "bad token"})
     backend = UnwiredLabsGeolocationBackend(api_key="bad", session=session)
     assert await backend.resolve(AP) is None
+
+
+@pytest.mark.asyncio
+async def test_unwired_labs_verify_credentials_false_on_401_or_403():
+    for status in (401, 403):
+        session = fake_session(status, {})
+        backend = UnwiredLabsGeolocationBackend(api_key="bad", session=session)
+        assert await backend.verify_credentials() is False
+
+
+@pytest.mark.asyncio
+async def test_unwired_labs_verify_credentials_true_on_200():
+    session = fake_session(200, {"status": "ok", "lat": 1.0, "lon": 2.0})
+    backend = UnwiredLabsGeolocationBackend(api_key="tok", session=session)
+    assert await backend.verify_credentials() is True

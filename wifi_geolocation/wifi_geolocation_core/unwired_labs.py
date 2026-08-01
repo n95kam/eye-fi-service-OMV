@@ -27,6 +27,23 @@ class UnwiredLabsGeolocationBackend:
     session: aiohttp.ClientSession
     base_url: str = UNWIRED_LABS_DEFAULT_URL
 
+    async def verify_credentials(self) -> bool:
+        """Cheap single-request check with a dummy all-zero BSSID; only a
+        confirmed 401/403 counts as invalid -- same rationale as
+        WigleGeolocationBackend.verify_credentials. Not live-verified
+        (see module docstring): Unwired Labs' own resolve() suggests auth
+        problems may come back as HTTP 200 with a body-level error status
+        rather than a 401/403, in which case this simply never fires --
+        harmless, and forward-compatible if that assumption is wrong."""
+        payload = {"token": self.api_key, "wifi": [{"bssid": "00:00:00:00:00:00", "signal": -100}]}
+        try:
+            async with self.session.post(
+                self.base_url, json=payload, timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                return resp.status not in (401, 403)
+        except (aiohttp.ClientError, TimeoutError):
+            return True
+
     async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
         payload = {
             "token": self.api_key,

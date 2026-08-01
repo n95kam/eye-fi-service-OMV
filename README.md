@@ -175,6 +175,14 @@ enabled); to force one back into the credential-entry queue instead —
 e.g. after rotating or fixing a revoked API key — select it under
 **Configure**'s "Re-enter credentials for" field, which only appears
 when at least one already-configured backend has credentials to offer.
+Every credential submitted (initial setup, a newly-added backend, or a
+re-entered one) is verified with a single live request before it's
+saved — only a confirmed rejection (401/403) blocks saving, shown as an
+inline form error asking to re-enter; anything else, including a network
+hiccup during the check itself, is treated as "looks fine" so a good key
+can never be rejected on a fluke. This is what would have caught the
+WiGLE 401 at Configure time instead of during a live backfill run
+hitting WiGLE hundreds of times with the same rejection.
 
 | Backend | Notes |
 |---|---|

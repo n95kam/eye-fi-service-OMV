@@ -23,6 +23,26 @@ class GoogleGeolocationBackend:
     api_key: str
     session: aiohttp.ClientSession
 
+    async def verify_credentials(self) -> bool:
+        """Cheap single-request check with a dummy all-zero BSSID; only a
+        confirmed 401/403 (Google returns 403 for an invalid/restricted
+        key, confirmed live) counts as invalid -- same rationale as
+        WigleGeolocationBackend.verify_credentials."""
+        payload = {
+            "considerIp": False,
+            "wifiAccessPoints": [{"macAddress": "00:00:00:00:00:00", "signalStrength": -100}],
+        }
+        try:
+            async with self.session.post(
+                GOOGLE_GEOLOCATION_URL,
+                params={"key": self.api_key},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                return resp.status not in (401, 403)
+        except (aiohttp.ClientError, TimeoutError):
+            return True
+
     async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
         payload = {
             "considerIp": False,

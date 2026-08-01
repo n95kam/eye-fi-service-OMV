@@ -27,10 +27,16 @@ class MozillaGeolocationBackend:
     base_url: str = MOZILLA_MLS_URL
     api_key: str | None = None
 
-    async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
-        return await IchnaeaCompatibleBackend(
+    def _delegate(self) -> IchnaeaCompatibleBackend:
+        return IchnaeaCompatibleBackend(
             url=self.base_url,
             session=self.session,
             api_key=self.api_key,
             service_name="Mozilla Location Service / Ichnaea",
-        ).resolve(access_points)
+        )
+
+    async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
+        return await self._delegate().resolve(access_points)
+
+    async def verify_credentials(self) -> bool:
+        return await self._delegate().verify_credentials()

@@ -35,6 +35,29 @@ class WigleGeolocationBackend:
     session: aiohttp.ClientSession
     _cooldown: RateLimitCooldown = field(default_factory=RateLimitCooldown, compare=False)
 
+    async def verify_credentials(self) -> bool:
+        """Cheap single-request check that these credentials are actually
+        accepted, so a bad API name/token pair is caught here -- once --
+        instead of during a full backfill run that would otherwise hit
+        WiGLE hundreds of times, getting a 401 every single time (exactly
+        what happened live before this existed). Only a confirmed 401
+        counts as invalid; any other response (including a plain
+        not-found) means the credentials are presumed fine, and a network
+        hiccup here is inconclusive, not proof of anything -- both are
+        treated as valid so a transient blip can't block saving a good
+        key. Uses a dummy all-zero BSSID; no real query performed."""
+        auth = aiohttp.BasicAuth(self.api_name, self.api_token)
+        try:
+            async with self.session.get(
+                WIGLE_SEARCH_URL,
+                params={"netid": "00:00:00:00:00:00"},
+                auth=auth,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                return resp.status != 401
+        except (aiohttp.ClientError, TimeoutError):
+            return True
+
     async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
         if self._cooldown.active():
             _LOGGER.debug(

@@ -185,6 +185,36 @@ def _parse_selected_backends(user_input: dict[str, Any]) -> list[str]:
     return _backends_from_priorities(user_input)
 
 
+async def _credentials_are_valid(hass: Any, backend: str, credentials: dict[str, Any]) -> bool:
+    """One cheap live request against `backend` using the just-submitted
+    `credentials`, so a bad key/token is caught here -- once -- instead
+    of during a real backfill run hitting it hundreds of times with the
+    same rejection every time (exactly what happened live with a WiGLE
+    401 before this existed). True for keyless backends with nothing to
+    verify, and for any inconclusive outcome (network hiccup) -- only a
+    confirmed rejection from the backend's own verify_credentials()
+    returns False, so a good key can never be rejected on a fluke.
+
+    Imports are local, not module-level: this module's schema-building
+    code is exec'd standalone by tests/custom_components/_ha_stub.py
+    without a real `homeassistant` package installed, and pulling in
+    `homeassistant.helpers.aiohttp_client` or this package's own
+    `__init__.py` (which needs a real `aiohttp`/`homeassistant.core`) at
+    module level would break that harness for no benefit -- neither is
+    needed until a credential is actually being verified.
+    """
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+    from . import _build_one_backend
+
+    session = async_get_clientsession(hass)
+    candidate = _build_one_backend(backend, credentials, session)
+    verify = getattr(candidate, "verify_credentials", None)
+    if verify is None:
+        return True
+    return await verify()
+
+
 class WifiGeolocationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -215,9 +245,14 @@ class WifiGeolocationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_step_next_backend(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None and self._pending:
-            backend = self._pending.pop(0)
-            self._data[backend] = user_input
+            backend = self._pending[0]
+            if await _credentials_are_valid(self.hass, backend, user_input):
+                self._pending.pop(0)
+                self._data[backend] = user_input
+            else:
+                errors["base"] = "invalid_auth"
 
         if not self._pending:
             return self.async_create_entry(title="WiFi Geolocation", data=self._data)
@@ -227,6 +262,7 @@ class WifiGeolocationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="backend_config",
             data_schema=_CREDENTIAL_SCHEMAS[next_backend],
             description_placeholders={"backend": BACKEND_LABELS[next_backend]},
+            errors=errors,
         )
 
     async def async_step_backend_config(
@@ -298,9 +334,14 @@ class WifiGeolocationOptionsFlow(config_entries.OptionsFlow):
     async def _async_step_next_backend(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None and self._pending:
-            backend = self._pending.pop(0)
-            self._data[backend] = user_input
+            backend = self._pending[0]
+            if await _credentials_are_valid(self.hass, backend, user_input):
+                self._pending.pop(0)
+                self._data[backend] = user_input
+            else:
+                errors["base"] = "invalid_auth"
 
         if not self._pending:
             self.hass.config_entries.async_update_entry(self._config_entry, data=self._data)
@@ -311,6 +352,7 @@ class WifiGeolocationOptionsFlow(config_entries.OptionsFlow):
             step_id="backend_config",
             data_schema=_CREDENTIAL_SCHEMAS[next_backend],
             description_placeholders={"backend": BACKEND_LABELS[next_backend]},
+            errors=errors,
         )
 
     async def async_step_backend_config(

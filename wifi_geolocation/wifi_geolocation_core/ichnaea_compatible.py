@@ -31,6 +31,28 @@ class IchnaeaCompatibleBackend:
     api_key_param: str = "key"
     service_name: str = "Ichnaea-compatible service"
 
+    async def verify_credentials(self) -> bool:
+        """Same rationale as WigleGeolocationBackend.verify_credentials --
+        one cheap request with a dummy all-zero BSSID, checked only for a
+        confirmed auth rejection (401/403). Anything else, including a
+        network hiccup, is treated as "credentials look fine" rather than
+        blocking a save on an inconclusive result."""
+        payload = {
+            "considerIp": False,
+            "wifiAccessPoints": [{"macAddress": "00:00:00:00:00:00", "signalStrength": -100}],
+        }
+        params = {self.api_key_param: self.api_key} if self.api_key else {}
+        try:
+            async with self.session.post(
+                self.url,
+                params=params,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                return resp.status not in (401, 403)
+        except (aiohttp.ClientError, TimeoutError):
+            return True
+
     async def resolve(self, access_points: list[AccessPoint]) -> Coordinates | None:
         payload = {
             "considerIp": False,
