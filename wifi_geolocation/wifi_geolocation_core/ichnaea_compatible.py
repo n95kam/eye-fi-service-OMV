@@ -51,11 +51,24 @@ class IchnaeaCompatibleBackend:
                 json=payload,
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as resp:
+                if resp.status == 404:
+                    # Google's Geolocation API -- and Ichnaea, which mirrors
+                    # its contract -- responds 404 (not a webserver-routing
+                    # 404) specifically to mean "none of these access
+                    # points are in the database", the normal outcome for
+                    # private/home APs no wardriving dataset has ever seen.
+                    # Not an error: log it like every other backend's
+                    # not-found case, not as a WARNING.
+                    _LOGGER.debug("%s has no record of these access points", self.service_name)
+                    return None
                 if resp.status != 200:
                     _LOGGER.warning("%s returned HTTP %s", self.service_name, resp.status)
                     return None
                 body = await resp.json()
-        except aiohttp.ClientError:
+        except (aiohttp.ClientError, TimeoutError):
+            # aiohttp.ClientTimeout(total=...) raises a bare TimeoutError,
+            # not an aiohttp.ClientError subclass -- see wifidb.py/wigle.py
+            # for the same fix, applied here for the same reason.
             _LOGGER.exception("%s request failed", self.service_name)
             return None
 

@@ -1,6 +1,6 @@
 import pytest
 
-from _fakes import fake_session
+from _fakes import RaisingSession, fake_session
 from wifi_geolocation_core.beacondb import BEACONDB_URL, BeaconDbGeolocationBackend
 from wifi_geolocation_core.combain import COMBAIN_URL, CombainGeolocationBackend
 from wifi_geolocation_core.models import AccessPoint, Coordinates
@@ -56,3 +56,27 @@ async def test_ichnaea_family_returns_none_on_missing_location():
 async def test_ichnaea_family_returns_none_on_non_200():
     session = fake_session(403, {})
     assert await CombainGeolocationBackend(api_key="k", session=session).resolve(AP) is None
+
+
+@pytest.mark.asyncio
+async def test_ichnaea_family_returns_none_on_404_not_found(caplog):
+    # Google's Geolocation API (and Ichnaea, which BeaconDB/Combain/Mozilla
+    # all mirror) responds 404 specifically to mean "none of these access
+    # points are in the database" -- confirmed live against BeaconDB, which
+    # returns this for every genuinely-private AP. Must resolve to None
+    # without being logged as a warning-level error like a real failure.
+    session = fake_session(404, {"error": {"code": 404, "message": "Not found"}})
+
+    with caplog.at_level("WARNING"):
+        result = await BeaconDbGeolocationBackend(session=session).resolve(AP)
+
+    assert result is None
+    assert not any(record.levelname == "WARNING" for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_ichnaea_family_timeout_does_not_crash_resolve():
+    # aiohttp.ClientTimeout(total=...) raises a bare TimeoutError, not an
+    # aiohttp.ClientError subclass -- same fix/rationale as WiGLE/WifiDB.
+    session = RaisingSession(TimeoutError())
+    assert await BeaconDbGeolocationBackend(session=session).resolve(AP) is None
