@@ -42,6 +42,12 @@ def test_local_path_destination_default_is_subfolder_of_download_dir(schemas):
         assert marker.default() == "/config/eyefi_downloads/photos"
 
 
+def test_card_schema_notify_service_is_optional_and_blank_by_default(schemas):
+    field_names = {marker.schema: marker for marker in schemas["_CARD_SCHEMA"].schema}
+    marker = field_names[schemas["CONF_NOTIFY_SERVICE"]]
+    assert marker.default() == ""
+
+
 def _serialize(schema):
     # UNSUPPORTED (not None) signals "no special handling" to voluptuous_serialize,
     # matching HA's real cv.custom_serializer — returning None here would mask

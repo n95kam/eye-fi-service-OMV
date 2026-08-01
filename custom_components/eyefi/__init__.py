@@ -36,6 +36,7 @@ from .const import (
     CONF_DESTINATION_CONFIG,
     CONF_DOWNLOAD_DIR,
     CONF_MAC,
+    CONF_NOTIFY_SERVICE,
     CONF_PORT,
     CONF_UPLOAD_KEY,
     DESTINATION_LOCAL_NAS,
@@ -95,6 +96,32 @@ class _ServiceBackedGeolocationBackend:
         )
 
 
+def _make_notify_on_stored(hass: HomeAssistant, notify_service: str):
+    """Pushes a notification through the HA Companion App's
+    ``notify.<notify_service>`` service (auto-created once a phone is
+    paired) each time a photo finishes uploading. Any failure here (e.g.
+    a stale/renamed notify service) is caught and logged by the event
+    bus's own subscriber isolation (InProcessEventBus._log_if_failed),
+    not by this function -- a notification problem must never affect the
+    upload pipeline itself, matching how _bridge_event above is also left
+    unwrapped for the same reason."""
+
+    async def _notify_on_stored(event: Event) -> None:
+        filename = Path(event.data["image_path"]).name
+        latitude = event.data.get("latitude")
+        longitude = event.data.get("longitude")
+        location = (
+            f"{latitude:.5f}, {longitude:.5f}" if latitude is not None else "location unresolved"
+        )
+        await hass.services.async_call(
+            "notify",
+            notify_service,
+            {"title": "Eye-Fi photo imported", "message": f"{filename} ({location})"},
+        )
+
+    return _notify_on_stored
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = entry.data
     cards = {card[CONF_MAC]: card[CONF_UPLOAD_KEY] for card in data[CONF_CARDS]}
@@ -123,6 +150,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     for event_type in _HA_EVENT_MAP:
         server.event_bus.subscribe(event_type, _bridge_event)
+
+    notify_service = data.get(CONF_NOTIFY_SERVICE)
+    if notify_service:
+        server.event_bus.subscribe(
+            EventType.IMAGE_STORED, _make_notify_on_stored(hass, notify_service)
+        )
 
     await server.start()
 

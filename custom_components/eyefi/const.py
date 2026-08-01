@@ -14,6 +14,7 @@ CONF_DOWNLOAD_DIR = "download_dir"
 CONF_DESTINATION = "destination"
 CONF_DESTINATION_CONFIG = "destination_config"
 CONF_PORT = "port"
+CONF_NOTIFY_SERVICE = "notify_service"  # e.g. "mobile_app_jims_iphone"; blank = no notifications
 
 DEFAULT_PORT = 59278
 DEFAULT_DOWNLOAD_DIR = "/config/eyefi_downloads"

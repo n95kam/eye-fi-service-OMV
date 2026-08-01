@@ -34,6 +34,7 @@ from .const import (
     CONF_DESTINATION_CONFIG,
     CONF_DOWNLOAD_DIR,
     CONF_MAC,
+    CONF_NOTIFY_SERVICE,
     CONF_PORT,
     CONF_UPLOAD_KEY,
     DEFAULT_DOWNLOAD_DIR,
@@ -82,6 +83,12 @@ _CARD_SCHEMA = vol.Schema(
         vol.Optional(CONF_DOWNLOAD_DIR, default=DEFAULT_DOWNLOAD_DIR): str,
         vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Required(CONF_DESTINATION, default=DESTINATION_LOCAL_NAS): vol.In(DESTINATIONS),
+        # Blank (the default) means no push notification is sent -- see
+        # this integration's __init__.py for where this is used. The
+        # value is whatever comes after "notify." in the Companion App's
+        # auto-created service, e.g. "mobile_app_jims_iphone" (found under
+        # Developer Tools > Actions by searching "notify").
+        vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
     }
 )
 
@@ -158,6 +165,7 @@ class EyeFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_DOWNLOAD_DIR: user_input[CONF_DOWNLOAD_DIR],
                     CONF_PORT: user_input[CONF_PORT],
                     CONF_DESTINATION: user_input[CONF_DESTINATION],
+                    CONF_NOTIFY_SERVICE: user_input[CONF_NOTIFY_SERVICE],
                 }
                 return await self.async_step_destination()
 
@@ -188,7 +196,13 @@ class EyeFiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class EyeFiOptionsFlow(config_entries.OptionsFlow):
-    """Add further cards to an existing Eye-Fi config entry."""
+    """Add further cards to an existing Eye-Fi config entry, and/or change
+    the notify service used for photo-import push notifications.
+
+    Card fields are optional here (unlike initial setup): leaving both
+    blank lets this step be used purely to set/change the notify service,
+    without forcing a new card to be added just to open the form.
+    """
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
@@ -196,24 +210,35 @@ class EyeFiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            mac = _normalize_mac(user_input[CONF_MAC])
-            upload_key = _normalize_upload_key(user_input[CONF_UPLOAD_KEY])
-            if mac is None:
-                errors[CONF_MAC] = "invalid_mac"
-            if upload_key is None:
-                errors[CONF_UPLOAD_KEY] = "invalid_upload_key"
+            new_data = dict(self._config_entry.data)
+            mac_raw = user_input.get(CONF_MAC, "").strip()
+            upload_key_raw = user_input.get(CONF_UPLOAD_KEY, "").strip()
+            if mac_raw or upload_key_raw:
+                mac = _normalize_mac(mac_raw)
+                upload_key = _normalize_upload_key(upload_key_raw)
+                if mac is None:
+                    errors[CONF_MAC] = "invalid_mac"
+                if upload_key is None:
+                    errors[CONF_UPLOAD_KEY] = "invalid_upload_key"
+                if not errors:
+                    cards = list(new_data.get(CONF_CARDS, []))
+                    cards.append({CONF_MAC: mac, CONF_UPLOAD_KEY: upload_key})
+                    new_data[CONF_CARDS] = cards
 
             if not errors:
-                cards = list(self._config_entry.data.get(CONF_CARDS, []))
-                cards.append({CONF_MAC: mac, CONF_UPLOAD_KEY: upload_key})
-                new_data = {**self._config_entry.data, CONF_CARDS: cards}
+                new_data[CONF_NOTIFY_SERVICE] = user_input.get(CONF_NOTIFY_SERVICE, "")
                 self.hass.config_entries.async_update_entry(self._config_entry, data=new_data)
                 return self.async_create_entry(title="", data={})
 
+        current_notify = self._config_entry.data.get(CONF_NOTIFY_SERVICE, "")
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
-                {vol.Required(CONF_MAC): str, vol.Required(CONF_UPLOAD_KEY): str}
+                {
+                    vol.Optional(CONF_MAC, default=""): str,
+                    vol.Optional(CONF_UPLOAD_KEY, default=""): str,
+                    vol.Optional(CONF_NOTIFY_SERVICE, default=current_notify): str,
+                }
             ),
             errors=errors,
         )

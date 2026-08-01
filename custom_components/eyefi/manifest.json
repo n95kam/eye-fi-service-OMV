@@ -10,5 +10,5 @@
     "eyefi-core @ git+https://github.com/dgtlrift/eye-fi-service-integration.git@main"
   ],
   "after_dependencies": ["wifi_geolocation"],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

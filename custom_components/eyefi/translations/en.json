@@ -9,7 +9,8 @@
           "upload_key": "Upload key (32 hex characters)",
           "download_dir": "Local download/spool directory",
           "port": "Listen port",
-          "destination": "Storage destination"
+          "destination": "Storage destination",
+          "notify_service": "Notify service for photo-import push notifications (optional -- e.g. \"mobile_app_jims_iphone\"; found under Developer Tools > Actions by searching \"notify\"; leave blank to disable)"
         }
       },
       "destination": {
@@ -25,10 +26,12 @@
   "options": {
     "step": {
       "init": {
-        "title": "Add another card",
+        "title": "Add a card / change notifications",
+        "description": "Leave the MAC address and upload key blank to change only the notify service below without adding a new card.",
         "data": {
           "mac": "MAC address (with or without colons)",
-          "upload_key": "Upload key (32 hex characters)"
+          "upload_key": "Upload key (32 hex characters)",
+          "notify_service": "Notify service for photo-import push notifications (optional; leave blank to disable)"
         }
       }
     },

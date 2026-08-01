@@ -272,6 +272,11 @@ class EyeFiSoapServer:
         await self._event_bus.publish(
             Event(
                 EventType.IMAGE_STORED,
-                {"image_path": str(item.image_path), "macaddress": macaddress},
+                {
+                    "image_path": str(item.image_path),
+                    "macaddress": macaddress,
+                    "latitude": metadata["latitude"],
+                    "longitude": metadata["longitude"],
+                },
             )
         )

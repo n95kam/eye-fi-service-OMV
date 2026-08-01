@@ -133,7 +133,23 @@ instead.
    installed.
 6. To add more cards later, open the Eye-Fi integration's **Configure**
    button — the options flow lets you add further mac/upload-key pairs to
-   the same entry.
+   the same entry. The same **Configure** button also has a **notify
+   service** field for push notifications (see below) — leave it blank
+   there to change only that without adding a card.
+
+### Photo-import notifications
+
+Optional: enter a notify service (initial setup, or later via
+**Configure**) and eyefi pushes a notification through the Home
+Assistant Companion App each time a photo finishes uploading, with the
+filename and geotag result. Pairing a phone via the Companion App
+auto-creates a `notify.<name>` service — find yours under **Developer
+Tools → Actions** by searching "notify" (e.g. `mobile_app_jims_iphone`);
+enter just the part after `notify.`. Leave it blank to disable. A
+notification failure (a stale/renamed service, etc.) is logged but never
+affects the upload pipeline itself — the same event-bus isolation that
+already protects the HA event bridge (`eyefi_image_stored`) from a
+misbehaving subscriber.
 
 ### Storage destinations
 
