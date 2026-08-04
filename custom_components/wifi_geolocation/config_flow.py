@@ -54,6 +54,7 @@ from .const import (
     BACKEND_COMBAIN,
     BACKEND_GOOGLE,
     BACKEND_HERE,
+    BACKEND_KNOWN_NETWORKS,
     BACKEND_LABELS,
     BACKEND_MOZILLA,
     BACKEND_PRIORITY_ORDER,
@@ -63,6 +64,10 @@ from .const import (
     CONF_COMBAIN_API_KEY,
     CONF_GOOGLE_API_KEY,
     CONF_HERE_API_KEY,
+    CONF_KNOWN_NETWORK_ACCURACY_M,
+    CONF_KNOWN_NETWORK_BSSID,
+    CONF_KNOWN_NETWORK_LATITUDE,
+    CONF_KNOWN_NETWORK_LONGITUDE,
     CONF_MOZILLA_API_KEY,
     CONF_MOZILLA_BASE_URL,
     CONF_PRIORITY_PREFIX,
@@ -72,10 +77,13 @@ from .const import (
     CONF_WIGLE_API_TOKEN,
     DOMAIN,
 )
+from wifi_geolocation_core.known_networks import DEFAULT_ACCURACY_M as KNOWN_NETWORK_DEFAULT_ACCURACY_M
 from wifi_geolocation_core.mozilla import MOZILLA_MLS_URL
 from wifi_geolocation_core.unwired_labs import UNWIRED_LABS_DEFAULT_URL
 
 # Backends with no credentials to collect (BeaconDB) are simply absent here.
+# Known Networks' schema isn't really "credentials" -- see
+# _apply_backend_config's docstring for what submitting it actually does.
 _CREDENTIAL_SCHEMAS: dict[str, vol.Schema] = {
     BACKEND_GOOGLE: vol.Schema({vol.Required(CONF_GOOGLE_API_KEY): str}),
     BACKEND_WIGLE: vol.Schema(
@@ -93,6 +101,16 @@ _CREDENTIAL_SCHEMAS: dict[str, vol.Schema] = {
         {
             vol.Optional(CONF_MOZILLA_API_KEY, default=""): str,
             vol.Optional(CONF_MOZILLA_BASE_URL, default=MOZILLA_MLS_URL): str,
+        }
+    ),
+    BACKEND_KNOWN_NETWORKS: vol.Schema(
+        {
+            vol.Required(CONF_KNOWN_NETWORK_BSSID): str,
+            vol.Required(CONF_KNOWN_NETWORK_LATITUDE): vol.Coerce(float),
+            vol.Required(CONF_KNOWN_NETWORK_LONGITUDE): vol.Coerce(float),
+            vol.Optional(
+                CONF_KNOWN_NETWORK_ACCURACY_M, default=KNOWN_NETWORK_DEFAULT_ACCURACY_M
+            ): vol.Coerce(float),
         }
     ),
 }
@@ -208,11 +226,44 @@ async def _credentials_are_valid(hass: Any, backend: str, credentials: dict[str,
     from . import _build_one_backend
 
     session = async_get_clientsession(hass)
-    candidate = _build_one_backend(backend, credentials, session)
+    candidate = _build_one_backend(backend, credentials, session, hass)
     verify = getattr(candidate, "verify_credentials", None)
     if verify is None:
         return True
     return await verify()
+
+
+async def _apply_backend_config(
+    hass: Any, backend: str, user_input: dict[str, Any]
+) -> dict[str, Any]:
+    """What should be stored under self._data[backend] once its form is
+    submitted and its credentials (if any) have passed verification.
+
+    For every backend except Known Networks, that's just the submitted
+    values verbatim -- unchanged from before this function existed. Known
+    Networks is different: its actual data (a growing list of BSSID ->
+    location entries) lives in its own local JSON store (see
+    wifi_geolocation_core/known_networks.py), not the config entry, since
+    the config entry only ever holds one dict per backend -- a second
+    submission would silently overwrite the first network instead of
+    adding to it. So submitting its form is a side effect (add one
+    network to that store) rather than something to store verbatim; an
+    empty placeholder marks it "configured" instead, and re-entering it
+    (via CONF_REENTER_CREDENTIALS) adds another network rather than
+    replacing the existing one -- see _reenter_credentials_field.
+    """
+    if backend == BACKEND_KNOWN_NETWORKS:
+        from . import _build_one_backend
+
+        store = _build_one_backend(backend, {}, session=None, hass=hass)
+        await store.add(
+            user_input[CONF_KNOWN_NETWORK_BSSID],
+            latitude=user_input[CONF_KNOWN_NETWORK_LATITUDE],
+            longitude=user_input[CONF_KNOWN_NETWORK_LONGITUDE],
+            accuracy_m=user_input[CONF_KNOWN_NETWORK_ACCURACY_M],
+        )
+        return {}
+    return user_input
 
 
 class WifiGeolocationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -250,7 +301,7 @@ class WifiGeolocationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             backend = self._pending[0]
             if await _credentials_are_valid(self.hass, backend, user_input):
                 self._pending.pop(0)
-                self._data[backend] = user_input
+                self._data[backend] = await _apply_backend_config(self.hass, backend, user_input)
             else:
                 errors["base"] = "invalid_auth"
 
@@ -339,7 +390,7 @@ class WifiGeolocationOptionsFlow(config_entries.OptionsFlow):
             backend = self._pending[0]
             if await _credentials_are_valid(self.hass, backend, user_input):
                 self._pending.pop(0)
-                self._data[backend] = user_input
+                self._data[backend] = await _apply_backend_config(self.hass, backend, user_input)
             else:
                 errors["base"] = "invalid_auth"
 

@@ -188,20 +188,38 @@ reordering or adding/removing backends there doesn't require removing
 and re-adding the integration. A backend that stays enabled keeps its
 stored credentials by default (it's not re-prompted just for staying
 enabled); to force one back into the credential-entry queue instead —
-e.g. after rotating or fixing a revoked API key — select it under
-**Configure**'s "Re-enter credentials for" field, which only appears
-when at least one already-configured backend has credentials to offer.
-Every credential submitted (initial setup, a newly-added backend, or a
-re-entered one) is verified with a single live request before it's
-saved — only a confirmed rejection (401/403) blocks saving, shown as an
-inline form error asking to re-enter; anything else, including a network
-hiccup during the check itself, is treated as "looks fine" so a good key
-can never be rejected on a fluke. This is what would have caught the
-WiGLE 401 at Configure time instead of during a live backfill run
-hitting WiGLE hundreds of times with the same rejection.
+e.g. after rotating or fixing a revoked API key, or to add another Known
+Networks entry (see below) — select it under **Configure**'s "Re-open
+setup for" field, which only appears when at least one already-configured
+backend has something to offer there. Every credential submitted
+(initial setup, a newly-added backend, or a re-entered one) is verified
+with a single live request before it's saved — only a confirmed
+rejection (401/403) blocks saving, shown as an inline form error asking
+to re-enter; anything else, including a network hiccup during the check
+itself, is treated as "looks fine" so a good key can never be rejected on
+a fluke. This is what would have caught the WiGLE 401 at Configure time
+instead of during a live backfill run hitting WiGLE hundreds of times
+with the same rejection.
+
+**Known Networks** is a different kind of backend from the rest: a local,
+free, instant lookup against a cache you maintain yourself (BSSID →
+lat/long), never a network request. It exists because no crowd-sourced
+database — free or paid — can ever really cover a private AP nobody's
+ever wardriven past; if it's your own home router, you already know
+where it is, so this backend just remembers that once instead of asking
+an external service that will never have the answer. Enabling it prompts
+for one network (BSSID, latitude, longitude, optional accuracy — default
+100m); add more later via the same "Re-open setup for" field used for
+credential replacement above. Its data lives in its own local JSON file
+(`wifi_geolocation_known_networks.json` under HA's config directory), not
+the config entry, so disabling the backend never deletes what's already
+been added. Default priority order puts it first, since it's the only
+backend that can never be rate-limited, cost money, or simply not have
+your AP's data at any price.
 
 | Backend | Notes |
 |---|---|
+| **Known Networks** | Free, local, no account. Your own manually-maintained BSSID → location cache — see above. |
 | **BeaconDB** | Free, open, community-run — no account needed. |
 | **WifiDB** | Free, open, community-run — no account needed. A single-maintainer "Beta" project with no SLA; unlike every other backend here it returns no accuracy figure at all, so a fixed conservative estimate (100m — typical outdoor WiFi AP range) is used instead. Uses its `search.php` endpoint, not the documented `locate.php`, which turned out to be dead code in practice (queries a table its own live scanner no longer populates). |
 | **Mozilla Location Service** | Ichnaea-compatible. Mozilla's own public instance was shut down in 2024 — only useful pointed at a self-hosted Ichnaea instance; the base URL is configurable. |

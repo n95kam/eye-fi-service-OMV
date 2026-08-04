@@ -13,7 +13,8 @@
           "priority_here": "HERE Technologies Positioning API",
           "priority_unwired_labs": "Unwired Labs LocationAPI",
           "priority_wigle": "WiGLE",
-          "priority_wifidb": "WifiDB (free, no account needed -- beta community project)"
+          "priority_wifidb": "WifiDB (free, no account needed -- beta community project)",
+          "priority_known_networks": "Known Networks (your own local cache -- free, no account, no external calls)"
         }
       },
       "backend_config": {
@@ -27,7 +28,11 @@
           "unwired_labs_api_key": "API token",
           "unwired_labs_base_url": "API base URL (region-specific, e.g. us1/eu1)",
           "mozilla_api_key": "API key (leave blank if your instance doesn't require one)",
-          "mozilla_base_url": "Ichnaea base URL (Mozilla's public instance was shut down in 2024 -- point this at a self-hosted Ichnaea instance)"
+          "mozilla_base_url": "Ichnaea base URL (Mozilla's public instance was shut down in 2024 -- point this at a self-hosted Ichnaea instance)",
+          "bssid": "BSSID (with or without colons)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "accuracy_m": "Accuracy estimate, in meters"
         }
       }
     },
@@ -43,7 +48,7 @@
     "step": {
       "init": {
         "title": "WiFi Geolocation backends",
-        "description": "Change which backend(s) are enabled and/or their order -- drag to reorder if your HA version supports it, otherwise set a priority number per backend (1 = tried first, 0 = disabled). Backends that stay enabled keep their existing credentials; newly-enabled ones will prompt for credentials next. To replace an already-configured backend's credentials (e.g. a rotated or revoked API key) without disabling and re-enabling it, select it under \"Re-enter credentials for\" below.",
+        "description": "Change which backend(s) are enabled and/or their order -- drag to reorder if your HA version supports it, otherwise set a priority number per backend (1 = tried first, 0 = disabled). Backends that stay enabled keep their existing credentials; newly-enabled ones will prompt for credentials next. To replace an already-configured backend's credentials (e.g. a rotated or revoked API key), or to add another Known Networks entry, select it under \"Re-open setup for\" below.",
         "data": {
           "backends": "Backends, in priority order",
           "priority_google": "Google Geolocation API",
@@ -54,7 +59,8 @@
           "priority_unwired_labs": "Unwired Labs LocationAPI",
           "priority_wigle": "WiGLE",
           "priority_wifidb": "WifiDB (free, no account needed -- beta community project)",
-          "reenter_credentials": "Re-enter credentials for"
+          "priority_known_networks": "Known Networks (your own local cache -- free, no account, no external calls)",
+          "reenter_credentials": "Re-open setup for"
         }
       },
       "backend_config": {
@@ -68,7 +74,11 @@
           "unwired_labs_api_key": "API token",
           "unwired_labs_base_url": "API base URL (region-specific, e.g. us1/eu1)",
           "mozilla_api_key": "API key (leave blank if your instance doesn't require one)",
-          "mozilla_base_url": "Ichnaea base URL (Mozilla's public instance was shut down in 2024 -- point this at a self-hosted Ichnaea instance)"
+          "mozilla_base_url": "Ichnaea base URL (Mozilla's public instance was shut down in 2024 -- point this at a self-hosted Ichnaea instance)",
+          "bssid": "BSSID (with or without colons)",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "accuracy_m": "Accuracy estimate, in meters"
         }
       }
     },

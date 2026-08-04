@@ -167,6 +167,64 @@ def test_backend_field_schema_omits_reenter_field_by_default(schemas, const):
     assert schemas["CONF_REENTER_CREDENTIALS"] not in field_names
 
 
+def test_known_networks_credential_schema_has_bssid_lat_lon_accuracy(schemas, const):
+    schema = schemas["_CREDENTIAL_SCHEMAS"][const.BACKEND_KNOWN_NETWORKS]
+    field_names = {marker.schema for marker in schema.schema}
+
+    assert field_names == {
+        const.CONF_KNOWN_NETWORK_BSSID,
+        const.CONF_KNOWN_NETWORK_LATITUDE,
+        const.CONF_KNOWN_NETWORK_LONGITUDE,
+        const.CONF_KNOWN_NETWORK_ACCURACY_M,
+    }
+
+
+@pytest.mark.asyncio
+async def test_apply_backend_config_passes_through_for_normal_backends(schemas, const):
+    apply_backend_config = schemas["_apply_backend_config"]
+    user_input = {const.CONF_WIGLE_API_NAME: "n", const.CONF_WIGLE_API_TOKEN: "t"}
+
+    result = await apply_backend_config(hass=None, backend=const.BACKEND_WIGLE, user_input=user_input)
+
+    assert result == user_input
+
+
+@pytest.mark.asyncio
+async def test_apply_backend_config_adds_a_known_network_instead_of_storing_verbatim(
+    schemas, const, monkeypatch
+):
+    apply_backend_config = schemas["_apply_backend_config"]
+
+    calls = []
+
+    class _FakeStore:
+        async def add(self, bssid, *, latitude, longitude, accuracy_m):
+            calls.append(
+                {"bssid": bssid, "latitude": latitude, "longitude": longitude, "accuracy_m": accuracy_m}
+            )
+
+    fake_package = sys.modules["custom_components.wifi_geolocation"]
+    monkeypatch.setattr(
+        fake_package, "_build_one_backend", lambda *a, **k: _FakeStore(), raising=False
+    )
+
+    user_input = {
+        const.CONF_KNOWN_NETWORK_BSSID: "0018560304f8",
+        const.CONF_KNOWN_NETWORK_LATITUDE: 1.0,
+        const.CONF_KNOWN_NETWORK_LONGITUDE: 2.0,
+        const.CONF_KNOWN_NETWORK_ACCURACY_M: 50.0,
+    }
+
+    result = await apply_backend_config(
+        hass=None, backend=const.BACKEND_KNOWN_NETWORKS, user_input=user_input
+    )
+
+    assert result == {}
+    assert calls == [
+        {"bssid": "0018560304f8", "latitude": 1.0, "longitude": 2.0, "accuracy_m": 50.0}
+    ]
+
+
 def _serialize(schema):
     from homeassistant.helpers import selector
 

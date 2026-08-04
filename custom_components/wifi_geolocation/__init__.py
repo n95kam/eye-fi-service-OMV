@@ -9,6 +9,7 @@ itself — only this integration's config entry does.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 import aiohttp
@@ -22,6 +23,7 @@ from wifi_geolocation_core.combain import CombainGeolocationBackend
 from wifi_geolocation_core.fallback import FallbackGeolocationBackend
 from wifi_geolocation_core.google import GoogleGeolocationBackend
 from wifi_geolocation_core.here import HereGeolocationBackend
+from wifi_geolocation_core.known_networks import KnownNetworksGeolocationBackend
 from wifi_geolocation_core.models import AccessPoint, GeolocationBackend
 from wifi_geolocation_core.mozilla import MozillaGeolocationBackend
 from wifi_geolocation_core.unwired_labs import UnwiredLabsGeolocationBackend
@@ -33,6 +35,7 @@ from .const import (
     BACKEND_COMBAIN,
     BACKEND_GOOGLE,
     BACKEND_HERE,
+    BACKEND_KNOWN_NETWORKS,
     BACKEND_MOZILLA,
     BACKEND_UNWIRED_LABS,
     BACKEND_WIFIDB,
@@ -48,6 +51,7 @@ from .const import (
     CONF_WIGLE_API_NAME,
     CONF_WIGLE_API_TOKEN,
     DOMAIN,
+    KNOWN_NETWORKS_STORE_FILENAME,
     SERVICE_RESOLVE,
 )
 
@@ -65,9 +69,15 @@ _RESOLVE_SERVICE_SCHEMA = vol.Schema(
 )
 
 
+def known_networks_store_path(hass: HomeAssistant) -> Path:
+    return Path(hass.config.path(KNOWN_NETWORKS_STORE_FILENAME))
+
+
 def _build_one_backend(
-    backend: str, data: dict[str, Any], session: aiohttp.ClientSession
+    backend: str, data: dict[str, Any], session: aiohttp.ClientSession, hass: HomeAssistant
 ) -> GeolocationBackend:
+    if backend == BACKEND_KNOWN_NETWORKS:
+        return KnownNetworksGeolocationBackend(store_path=known_networks_store_path(hass))
     if backend == BACKEND_GOOGLE:
         return GoogleGeolocationBackend(api_key=data[CONF_GOOGLE_API_KEY], session=session)
     if backend == BACKEND_WIGLE:
@@ -99,10 +109,14 @@ def _build_one_backend(
     raise ValueError(f"Unknown backend {backend!r}")
 
 
-def _build_backend(data: dict[str, Any], session: aiohttp.ClientSession) -> GeolocationBackend:
+def _build_backend(
+    data: dict[str, Any], session: aiohttp.ClientSession, hass: HomeAssistant
+) -> GeolocationBackend:
     # data[CONF_BACKENDS] is already in the user's chosen priority order --
     # see config_flow.py's _backend_select_schema.
-    backends = tuple(_build_one_backend(b, data.get(b, {}), session) for b in data[CONF_BACKENDS])
+    backends = tuple(
+        _build_one_backend(b, data.get(b, {}), session, hass) for b in data[CONF_BACKENDS]
+    )
     if len(backends) == 1:
         return backends[0]
     return FallbackGeolocationBackend(backends=backends)
@@ -110,7 +124,7 @@ def _build_backend(data: dict[str, Any], session: aiohttp.ClientSession) -> Geol
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = aiohttp.ClientSession()
-    backend = _build_backend(entry.data, session)
+    backend = _build_backend(entry.data, session, hass)
 
     async def _handle_resolve(call: ServiceCall) -> ServiceResponse:
         access_points = [
