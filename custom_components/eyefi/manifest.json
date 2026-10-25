@@ -3,8 +3,8 @@
   "name": "Eye-Fi",
   "codeowners": [],
   "config_flow": true,
-  "documentation": "https://github.com/dgtlrift/eye-fi-service-integration",
-  "issue_tracker": "https://github.com/dgtlrift/eye-fi-service-integration/issues",
+  "documentation": "https://github.com/n95kam/eye-fi-service-OMV",
+  "issue_tracker": "https://github.com/n95kam/eye-fi-service-OMV/issues",
   "iot_class": "local_push",
   "requirements": [
   "eyefi-core @ git+https://github.com/n95kam/eye-fi-service-OMV.git@main"
