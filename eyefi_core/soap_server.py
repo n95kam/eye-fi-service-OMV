@@ -263,9 +263,16 @@ class EyeFiSoapServer:
             "longitude": coordinates.longitude if coordinates else None,
         }
         try:
-            await self._storage_backend.store(item.image_path, metadata)
+            stored = await self._storage_backend.store(item.image_path, metadata)
         except StorageError:
             _LOGGER.exception("Storage failed for %s", item.image_path)
+            return
+
+        if not stored:
+            _LOGGER.info(
+                "Image spooled for retry; keeping source: %s",
+                item.image_path,
+            )
             return
 
         _LOGGER.info("Image stored: %s (card %s)", item.image_path.name, macaddress)
@@ -280,3 +287,11 @@ class EyeFiSoapServer:
                 },
             )
         )
+
+        for path in (item.image_path, item.log_path):
+            if path is not None:
+                try:
+                    path.unlink(missing_ok=True)
+                    _LOGGER.info("Removed local Eye-Fi file: %s", path)
+                except OSError:
+                    _LOGGER.exception("Failed to remove local Eye-Fi file: %s", path)
