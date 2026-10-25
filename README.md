@@ -1,3 +1,13 @@
+## OMV-focused modified version
+
+This is a modified version of the Eye-Fi Home Assistant integration, intended for setups that store photos on an OpenMediaVault (OMV) network share.
+
+**Important behavior:** When a photo is successfully stored at the configured destination, the original image and its associated `.log` sidecar are deleted from the local Home Assistant download directory to save disk space.
+
+If the destination is temporarily unavailable and the image is queued for retry, the local source files are retained. Review the cleanup behavior and test it with non-important photos before using this version with your main photo library.
+
+This modification is intended for personal use with a configured network storage destination. It may not be suitable for users who want to retain local copies or use other storage backends.
+
 # Eye-Fi Home Assistant Integration
 
 A Home Assistant custom integration that acts as an Eye-Fi card upload
