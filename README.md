@@ -1,3 +1,5 @@
+[日本語版 README](README.ja.md) | Japanese
+
 ## OMV-focused modified version
 
 This is a modified version of the Eye-Fi Home Assistant integration, intended for setups that store photos on an OpenMediaVault (OMV) network share.
