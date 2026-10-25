@@ -1,15 +1,111 @@
 [日本語版 README](README.ja.md) | Japanese
 
-## OMV-focused modified version
+[日本語版 README](README.ja.md) | Japanese
 
-This is a modified version of the Eye-Fi Home Assistant integration, intended for setups that store photos on an OpenMediaVault (OMV) network share.
+# Eye-Fi OMV
 
-**Important behavior:** When a photo is successfully stored at the configured destination, the original image and its associated `.log` sidecar are deleted from the local Home Assistant download directory to save disk space.
+**Bring your old Eye-Fi camera back to life. 📷**
 
-If the destination is temporarily unavailable and the image is queued for retry, the local source files are retained. Review the cleanup behavior and test it with non-important photos before using this version with your main photo library.
+Give your old digital camera a new place in your everyday life.
 
-This modification is intended for personal use with a configured network storage destination. It may not be suitable for users who want to retain local copies or use other storage backends.
+Eye-Fi OMV is a personal modification of an existing Eye-Fi integration for Home Assistant. It is intended for setups that receive photos from Eye-Fi cards and store them on network storage such as OpenMediaVault (OMV).
 
+The idea is simple: bring old Eye-Fi cards and classic digital cameras back into use by combining them with modern NAS storage and smart home systems.
+
+## ✨ What is this?
+
+Eye-Fi cards were Wi-Fi-enabled memory cards that could transfer photos from a camera over a local network.
+
+Although the original manufacturer's services have ended, some Eye-Fi hardware may still be usable with a suitable local setup.
+
+This project uses Home Assistant as part of a local photo-receiving workflow and aims to store received photos on network storage.
+
+- 📡 **Receive photos from Eye-Fi** — Receive photos from compatible Eye-Fi cards over a local network.
+- 🗄️ **Store photos on a NAS** — Collect photos in a configured destination such as OpenMediaVault.
+- 🧹 **Clean up local temporary files** — After a successful storage operation, the modified code attempts to delete the local source image and its associated `.log` file.
+- 🏠 **Integrate with a smart home** — Use Home Assistant as part of a modern home network workflow.
+
+If storage fails and the image is queued for retry, the local source files are retained at that point. However, the behavior of all retry and recovery scenarios has not been fully tested. In particular, a later successful retry is not guaranteed to remove the original local files.
+
+## 📷 Why Eye-Fi again?
+
+Older digital cameras have a character of their own.
+
+Some cameras with CCD sensors produce colors and images that many people find distinctive and appealing. The results depend on the camera, lens, and shooting conditions, but using these older cameras can still be a lot of fun.
+
+Instead of manually importing every photo, it is convenient to collect them on a NAS and manage them alongside the rest of your digital life.
+
+**Keep the joy of shooting with a classic camera, while making photo management feel modern.**
+
+That is the idea behind this project.
+
+## 🛠️ What has been modified?
+
+This repository is a personal modification of an existing Eye-Fi Home Assistant integration.
+
+The main changes include:
+
+- Documentation and setup focused on environments using OMV or other network storage.
+- Improved handling of storage success and failure.
+- Removal of the local source image and associated `.log` file after a successful storage operation.
+- Improvements to logging around storage and retry behavior.
+
+The changes may be small, but they build on an existing project that made this possible in the first place.
+
+## ⚠️ Status and limitations
+
+**This is an experimental personal modification.**
+
+The modified setup has been tested with a real Eye-Fi card, Home Assistant, and network storage. In the tested setup, photos appeared on the NAS and the local Eye-Fi download folder was left empty after transfer.
+
+However, this is not a comprehensive test suite, and this project has not been tested as extensively as the original integration. Its reliability across different hardware and configurations is unknown.
+
+Please keep the following limitations in mind:
+
+- Compatibility with every Eye-Fi card, camera, or storage destination is not guaranteed.
+- Network outages, insufficient storage space, permission errors, and all retry/recovery scenarios have not been fully tested.
+- A photo that enters the retry queue may remain in the local download directory even if a later retry succeeds.
+- Successful transfer does not replace a proper backup strategy or guarantee long-term photo preservation.
+
+If you use this with important photos, keep independent backups and test with disposable images first.
+
+## 🙏 Credits and acknowledgements
+
+This project is based on the existing [Eye-Fi Service Integration](https://github.com/dgtlrift/eye-fi-service-integration).
+
+Many thanks to the original author for creating and sharing the project. Without that existing code and foundation, this modification would not have been possible.
+
+This modification was developed with help from OpenAI's ChatGPT using **vibe coding** to explore changes, troubleshoot issues, and refine the implementation.
+
+I am not an expert software developer, and I have not been able to perform extensive testing on my own. With the help of AI, however, I was able to make the changes and verify the basic workflow with real hardware.
+
+This project is shared as-is, without any guarantee that it will work correctly in every environment. Feedback, code reviews, and suggestions for safer or more robust implementations are very welcome.
+
+## 🤝 Contributions welcome
+
+If this project interests you, contributions and feedback are appreciated.
+
+- Code reviews
+- Bug reports
+- Reports from testing other Eye-Fi cards and cameras
+- Improvements for NAS and network storage support
+- Suggestions for safer file cleanup and retry handling
+
+In particular, advice from people experienced with Python and Home Assistant integration development would be greatly appreciated.
+
+Suggestions and constructive criticism are welcome. If something could be implemented more safely or reliably, I'd be happy to learn from it.
+
+The goal is simple: make it possible to enjoy older camera equipment again.
+
+If this small project helps someone bring a forgotten camera back into use, that would make me happy.
+
+---
+
+**Project:** [eye-fi-service-OMV](https://github.com/n95kam/eye-fi-service-OMV)
+
+**Original project:** [dgtlrift/eye-fi-service-integration](https://github.com/dgtlrift/eye-fi-service-integration)
+
+*An experimental community modification. Not affiliated with or endorsed by the original author, Eye-Fi, or OpenMediaVault.*
 # Eye-Fi Home Assistant Integration
 
 A Home Assistant custom integration that acts as an Eye-Fi card upload
