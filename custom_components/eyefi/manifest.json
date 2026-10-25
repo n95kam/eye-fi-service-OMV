@@ -1,6 +1,6 @@
 {
   "domain": "eyefi",
-  "name": "Eye-Fi",
+  "name": "Eye-Fi OMV",
   "codeowners": [],
   "config_flow": true,
   "documentation": "https://github.com/n95kam/eye-fi-service-OMV",
