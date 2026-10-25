@@ -275,6 +275,13 @@ class EyeFiSoapServer:
             )
             return
 
+        if not stored:
+            _LOGGER.info(
+                "Image spooled for retry; keeping source: %s",
+                item.image_path,
+            )
+            return
+
         _LOGGER.info("Image stored: %s (card %s)", item.image_path.name, macaddress)
         await self._event_bus.publish(
             Event(
@@ -294,4 +301,6 @@ class EyeFiSoapServer:
                     path.unlink(missing_ok=True)
                     _LOGGER.info("Removed local Eye-Fi file: %s", path)
                 except OSError:
-                    _LOGGER.exception("Failed to remove local Eye-Fi file: %s", path)
+                    _LOGGER.exception(
+                        "Failed to remove local Eye-Fi file: %s", path
+                    )
