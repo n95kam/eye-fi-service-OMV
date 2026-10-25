@@ -38,12 +38,14 @@ class SpoolingStorageBackend:
         self._backend = backend
         self._spool_dir = spool_dir
 
-    async def store(self, image_path: Path, metadata: dict[str, Any]) -> None:
+    async def store(self, image_path: Path, metadata: dict[str, Any]) -> bool:
         try:
             await self._backend.store(image_path, metadata)
+            return True
         except StorageError:
             _LOGGER.warning("Store failed for %s, spooling for retry", image_path)
             self._spool(image_path, metadata)
+            return False
 
     def _spool(self, image_path: Path, metadata: dict[str, Any]) -> None:
         self._spool_dir.mkdir(parents=True, exist_ok=True)
