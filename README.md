@@ -1,7 +1,5 @@
 [日本語版 README](README.ja.md) | Japanese
 
-[日本語版 README](README.ja.md) | Japanese
-
 # Eye-Fi OMV
 
 **Bring your old Eye-Fi camera back to life. 📷**
