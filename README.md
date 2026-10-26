@@ -1,6 +1,6 @@
 [日本語版 README](README.ja.md) | Japanese
 
-# Eye-Fi NAS OMV
+# Eye-Fi > NAS (OMV)
 
 **Bring your old Eye-Fi camera back to life. 📷**
 
