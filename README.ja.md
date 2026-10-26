@@ -1,4 +1,4 @@
-# Eye-Fi > NAD (OMV)
+# Eye-Fi > NAS (OMV)
 
 **Bring your old Eye-Fi camera back to life. 📷**
 
